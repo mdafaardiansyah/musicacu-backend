@@ -5,6 +5,7 @@ import (
 	"github.com/mdafaardiansyah/musicacu-backend/internal/models/memberships"
 )
 
+//go:generate mockgen -source=handler.go -destination=handler_mock_test.go -package=memberships
 type service interface {
 	SignUp(request memberships.SignUpRequest) error
 }
