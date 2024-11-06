@@ -1,5 +1,6 @@
 package spotify
 
+//this folder spotify can moved to external folder instead of internal
 import (
 	"github.com/mdafaardiansyah/musicacu-backend/internal/configs"
 	"github.com/mdafaardiansyah/musicacu-backend/pkg/httpclient"
