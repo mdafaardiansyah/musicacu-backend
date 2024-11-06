@@ -13,6 +13,7 @@ import (
 	"github.com/mdafaardiansyah/musicacu-backend/pkg/httpclient"
 	"github.com/mdafaardiansyah/musicacu-backend/pkg/internalsql"
 	"log"
+	"net/http"
 )
 
 func main() {
@@ -43,7 +44,7 @@ func main() {
 
 	r := gin.Default()
 
-	httpClient := httpclient.NewClient(&httpclient.Client{})
+	httpClient := httpclient.NewClient(&http.Client{})
 	spotifyOutbound := spotify.NewSpotifyOutbound(cfg, httpClient)
 
 	membershipRepo := membershipsRepo.NewRepository(db)
