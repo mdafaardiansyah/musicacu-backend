@@ -6,6 +6,7 @@ import (
 	membershipsHandler "github.com/mdafaardiansyah/musicacu-backend/internal/handler/memberships"
 	tracksHandler "github.com/mdafaardiansyah/musicacu-backend/internal/handler/tracks"
 	"github.com/mdafaardiansyah/musicacu-backend/internal/models/memberships"
+	"github.com/mdafaardiansyah/musicacu-backend/internal/models/trackactivities"
 	membershipsRepo "github.com/mdafaardiansyah/musicacu-backend/internal/repository/memberships"
 	"github.com/mdafaardiansyah/musicacu-backend/internal/repository/spotify"
 	membershipsSvc "github.com/mdafaardiansyah/musicacu-backend/internal/service/memberships"
@@ -41,6 +42,7 @@ func main() {
 	}
 
 	db.AutoMigrate(&memberships.User{})
+	db.AutoMigrate(&trackactivities.TrackActivity{})
 
 	r := gin.Default()
 
