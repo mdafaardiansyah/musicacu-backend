@@ -8,6 +8,8 @@ import (
 	"github.com/mdafaardiansyah/musicacu-backend/internal/models/memberships"
 	"github.com/mdafaardiansyah/musicacu-backend/internal/models/trackactivities"
 	membershipsRepo "github.com/mdafaardiansyah/musicacu-backend/internal/repository/memberships"
+	trackactivitiesRepo "github.com/mdafaardiansyah/musicacu-backend/internal/repository/trackactivities"
+
 	"github.com/mdafaardiansyah/musicacu-backend/internal/repository/spotify"
 	membershipsSvc "github.com/mdafaardiansyah/musicacu-backend/internal/service/memberships"
 	"github.com/mdafaardiansyah/musicacu-backend/internal/service/tracks"
@@ -47,12 +49,14 @@ func main() {
 	r := gin.Default()
 
 	httpClient := httpclient.NewClient(&http.Client{})
+
 	spotifyOutbound := spotify.NewSpotifyOutbound(cfg, httpClient)
 
 	membershipRepo := membershipsRepo.NewRepository(db)
+	trackActivitiesRepo := trackactivitiesRepo.NewRepository(db)
 
 	membershipSvc := membershipsSvc.NewService(cfg, membershipRepo)
-	trackSvc := tracks.NewService(spotifyOutbound)
+	trackSvc := tracks.NewService(spotifyOutbound, trackActivitiesRepo)
 
 	membershipHandler := membershipsHandler.NewHandler(r, membershipSvc)
 	membershipHandler.RegisterRoute()
