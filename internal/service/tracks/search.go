@@ -3,6 +3,7 @@ package tracks
 import (
 	"context"
 	"github.com/mdafaardiansyah/musicacu-backend/internal/models/spotify"
+	"github.com/mdafaardiansyah/musicacu-backend/internal/models/trackactivities"
 	spotifyRepo "github.com/mdafaardiansyah/musicacu-backend/internal/repository/spotify"
 	"github.com/rs/zerolog/log"
 )
@@ -23,15 +24,25 @@ func (s *service) Search(ctx context.Context, query string, pageSize, pageIndex 
 		log.Error().Err(err).Msg("error search track to spotify")
 		return nil, err
 	}
+	trackIDs := make([]string, len(trackDetails.Tracks.Items))
+	for idx, item := range trackDetails.Tracks.Items {
+		trackIDs[idx] = item.ID
+	}
 
-	return modelToResponse(trackDetails), nil
+	trackActivities, err := s.trackActivitiesRepo.GetBulkSpotifyIDs(ctx, userID, trackIDs)
+	if err != nil {
+		log.Error().Err(err).Msg("error get track activities from database")
+		return nil, err
+	}
+
+	return modelToResponse(trackDetails, trackActivities), nil
 }
 
 // modelToResponse transforms a SpotifySearchResponse and a map of track activities
 // into a SearchResponse. It extracts essential track, album, and artist details,
 // while also incorporating user-specific track activity data, such as like status.
 // If the input data is nil, it returns nil.
-func modelToResponse(data *spotifyRepo.SpotifySearchResponse) *spotify.SearchResponse {
+func modelToResponse(data *spotifyRepo.SpotifySearchResponse, mapTrackActivities map[string]trackactivities.TrackActivity) *spotify.SearchResponse {
 	if data == nil {
 		return nil
 	}
@@ -61,6 +72,8 @@ func modelToResponse(data *spotifyRepo.SpotifySearchResponse) *spotify.SearchRes
 			Explicit: item.Explicit,
 			ID:       item.ID,
 			Name:     item.Name,
+			// track activity isliked
+			IsLiked: mapTrackActivities[item.ID].IsLiked,
 		})
 	}
 
