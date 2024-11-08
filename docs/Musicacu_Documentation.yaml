@@ -1,0 +1,386 @@
+openapi: 3.0.0
+info:
+  title: Musicacu Backend API
+  version: 1.0.0
+  description: |
+    # Musicacu Backend API Documentation
+
+    Musicacu is a music catalog service that integrates with Spotify's public API to provide a personalized music discovery and management experience. This API enables users to search for tracks, get recommendations, and manage their music preferences through features like likes and dislikes.
+
+    ## Key Features
+    - User authentication and management
+    - Music track search integration with Spotify
+    - Personalized track recommendations
+    - Track activity tracking (likes/dislikes)
+    - Secure API access with JWT authentication
+
+    ## Authentication
+    The API uses JWT (JSON Web Token) for authentication. Most endpoints require a valid access token obtained through the login process. Include the token in the Authorization header as a Bearer token.
+
+    ## Rate Limiting
+    Please note that some operations may be subject to rate limiting both from our service and the underlying Spotify API.
+
+    ## Base URL
+    All API requests should be made to: `http://{{baseurl}}`
+
+servers:
+  - url: http://{{baseurl}}
+    description: Main API server
+
+components:
+  securitySchemes:
+    apikeyAuth:
+      type: http
+      scheme: apikey
+      description: JWT token obtained from the login endpoint
+
+tags:
+  - name: Users
+    description: User management operations including registration and authentication
+  - name: Spotify Tracks
+    description: Operations for searching, recommending, and managing track preferences
+
+paths:
+  /memberships/sign_up:
+    post:
+      tags:
+        - Users
+      summary: Create a new user account
+      description: |
+        Register a new user account in the Musicacu platform. This endpoint handles user registration by creating a new account with the provided email, password, and username.
+
+        ### Important Notes
+        - Emails must be unique across the system
+        - Passwords should be secure and meet minimum requirements
+        - Usernames must be unique and contain only alphanumeric characters
+        
+        ### Process Flow
+        1. User submits registration details
+        2. System validates the input
+        3. Creates new user account if validation passes
+        4. Returns confirmation of account creation
+
+        ### Error Scenarios
+        - Email already exists
+        - Invalid email format
+        - Username already taken
+        - Password doesn't meet requirements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - username
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User's email address
+                password:
+                  type: string
+                  format: password
+                  description: User's chosen password
+                username:
+                  type: string
+                  description: User's chosen username
+              example:
+                email: arif@gmail.com
+                password: password
+                username: arif
+      responses:
+        '201':
+          description: User successfully created
+        '400':
+          description: Invalid input provided
+        '409':
+          description: Email or username already exists
+
+  /memberships/login:
+    post:
+      tags:
+        - Users
+      summary: Authenticate user and get access token
+      description: |
+        Authenticate a user and generate a JWT access token for subsequent API requests.
+
+        ### Authentication Process
+        1. User submits email and password
+        2. System validates credentials
+        3. If valid, generates and returns JWT token
+        4. Token should be included in subsequent requests
+
+        ### Token Usage
+        The returned JWT token should be included in the Authorization header of subsequent requests:
+        ```
+        Authorization: Bearer <your_token_here>
+        ```
+
+        ### Token Expiration
+        Tokens are valid for 24 hours from issuance. After expiration, a new login is required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User's registered email
+                password:
+                  type: string
+                  format: password
+                  description: User's password
+              example:
+                email: arif@gmail.com
+                password: password
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: JWT token for API authentication
+        '401':
+          description: Invalid credentials
+        '403':
+          description: Account locked or disabled
+
+  /tracks/search:
+    get:
+      tags:
+        - Spotify Tracks
+      summary: Search for tracks on Spotify
+      description: |
+        Search for music tracks using Spotify's comprehensive database. This endpoint provides a powerful search capability that returns detailed track information including album details and artist information.
+
+        ### Search Capabilities
+        - Searches across track titles, artist names, and album names
+        - Returns comprehensive track metadata
+        - Includes like status for authenticated users
+        - Supports pagination through limit and offset parameters
+
+        ### Response Details
+        The response includes:
+        - Basic track information (name, ID)
+        - Album details (name, type, image URLs)
+        - Artist information
+        - Track status (explicit content, like status)
+        - Pagination information
+
+        ### Optimization Tips
+        - Use specific search terms for better results
+        - Utilize the limit parameter to control response size
+        - Consider caching frequently accessed results
+      security:
+        - apikeyAuth: []
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query string (artist, track, or album name)
+          example: yoasobi
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          description: Maximum number of results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of results to skip for pagination
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        albumType:
+                          type: string
+                        totalTracks:
+                          type: integer
+                        albumImagesURL:
+                          type: array
+                          items:
+                            type: string
+                        albumName:
+                          type: string
+                        artistsName:
+                          type: array
+                          items:
+                            type: string
+                        explicit:
+                          type: boolean
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        isLiked:
+                          type: boolean
+                  total:
+                    type: integer
+        '401':
+          description: Unauthorized - Invalid or missing token
+        '429':
+          description: Too many requests - Rate limit exceeded
+
+  /tracks/track-activity:
+    post:
+      tags:
+        - Spotify Tracks
+      summary: Track user interaction with songs
+      description: |
+        Record user interactions with tracks, including likes and dislikes. This feature enables personalized music recommendations and user preference tracking.
+
+        ### Activity Types
+        - Like (isLiked: true)
+        - Dislike (isLiked: false)
+        - Remove interaction (isLiked: null)
+
+        ### Usage Impact
+        Track activities influence:
+        - Personal recommendations
+        - Music discovery features
+        - User profile preferences
+
+        ### Important Notes
+        - Activities are stored per user
+        - Previous activities for the same track are updated
+        - Activities contribute to recommendation algorithms
+      security:
+        - apikeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - spotifyID
+                - isLiked
+              properties:
+                spotifyID:
+                  type: string
+                  description: Spotify's unique track identifier
+                isLiked:
+                  type: boolean
+                  nullable: true
+                  description: Track preference status
+              example:
+                spotifyID: 1hAloWiinXLPQUJxrJReb1
+                isLiked: true
+      responses:
+        '200':
+          description: Activity successfully recorded
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized - Invalid or missing token
+
+  /tracks/recommendations:
+    get:
+      tags:
+        - Spotify Tracks
+      summary: Get personalized track recommendations
+      description: |
+        Retrieve personalized music recommendations based on a seed track and user preferences. This endpoint leverages Spotify's recommendation engine along with user activity history to provide relevant suggestions.
+
+        ### Recommendation Factors
+        - Seed track's musical attributes
+        - User's listening history
+        - Like/dislike patterns
+        - Genre preferences
+        - Similar users' preferences
+
+        ### Optimization Tips
+        - Use tracks you enjoy as seeds
+        - Adjust the limit based on your needs
+        - Combine with track-activity for better personalization
+
+        ### Response Details
+        Returns a collection of recommended tracks with full metadata, similar to the search endpoint response.
+      security:
+        - apikeyAuth: []
+      parameters:
+        - name: trackID
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Spotify ID of the seed track
+          example: '1hAloWiinXLPQUJxrJReb1'
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: Maximum number of recommendations to return
+          example: '20'
+      responses:
+        '200':
+          description: Successfully retrieved recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        artistsName:
+                          type: array
+                          items:
+                            type: string
+                        albumName:
+                          type: string
+                        albumImagesURL:
+                          type: array
+                          items:
+                            type: string
+                        isLiked:
+                          type: boolean
+        '400':
+          description: Invalid parameters provided
+        '401':
+          description: Unauthorized - Invalid or missing token
+        '429':
+          description: Too many requests - Rate limit exceeded
