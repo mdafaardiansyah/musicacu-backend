@@ -29,10 +29,13 @@ servers:
 
 components:
   securitySchemes:
-    apikeyAuth:
+    bearerAuth:    # Mengubah dari apikeyAuth menjadi bearerAuth
       type: http
-      scheme: apikey
-      description: JWT token obtained from the login endpoint
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Authorization header using the Bearer scheme.
+        Enter your token in the format: "Bearer {token}"
 
 tags:
   - name: Users
@@ -185,7 +188,7 @@ paths:
         - Utilize the limit parameter to control response size
         - Consider caching frequently accessed results
       security:
-        - apikeyAuth: []
+        - bearerAuth: []
       parameters:
         - name: query
           in: query
@@ -279,7 +282,7 @@ paths:
         - Previous activities for the same track are updated
         - Activities contribute to recommendation algorithms
       security:
-        - apikeyAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -331,7 +334,7 @@ paths:
         ### Response Details
         Returns a collection of recommended tracks with full metadata, similar to the search endpoint response.
       security:
-        - apikeyAuth: []
+        - bearerAuth: []
       parameters:
         - name: trackID
           in: query
